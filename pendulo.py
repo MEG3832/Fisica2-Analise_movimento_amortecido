@@ -17,12 +17,13 @@ def encontraDados(video, fps):
         # Converte para escala de cinza
         cinza = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-        # Aplica limiar para binarizar (preto e branco invertido)
+        # Binariza (brilho < 100 vira branco (255), e o resto vira preto (0))
         _, limiar = cv2.threshold(cinza, 100, 255, cv2.THRESH_BINARY_INV)
 
         # Encontra contornos
         contornos, _ = cv2.findContours(limiar, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
+    # Calcula as coordenadas do centro da massa
         if contornos:
             maior = max(contornos, key=cv2.contourArea)
             M = cv2.moments(maior)
@@ -41,10 +42,12 @@ def modeloMHA(t, A, b, w, phi, C):
 
 # Cria os dois gráficos e retorna os dados
 def criaGraficos(dados):
+    # Listas com cada tempo, deslocamento em x e deslocamento em y
     tempos = np.array([d[0] for d in dados])
     x_vals = np.array([d[1][0] for d in dados])
     y_vals = np.array([d[1][1] for d in dados])
 
+    # Cria gráfico da posição X pelo tempo
     plt.figure(figsize=(12, 6))
     plt.plot(tempos, x_vals, color='blue', linewidth=2)
     plt.title('Posição X da massa em função do tempo')
@@ -54,8 +57,9 @@ def criaGraficos(dados):
     plt.savefig("grafico_x.png")
     plt.close()
 
+    # Cria o gráfico da posição Y pelo tempo
     plt.figure(figsize=(12, 6))
-    plt.plot(tempos, y_vals, color='red', linewidth=2)
+    plt.plot(tempos, y_vals, color='green', linewidth=2)
     plt.title('Posição Y da massa em função do tempo')
     plt.xlabel('Tempo (s)')
     plt.ylabel('Y (px)')
@@ -71,23 +75,29 @@ def ajustaCurva(tempos, x_vals):
     massa = 0.190
     A0 = (max(x_vals) - min(x_vals)) / 2
     b0 = 0.005
-    w0 = (0.04*np.pi)*fps
+    T0 = 3.25
+    w0 = 2*np.pi/T0
     phi0 = 0
     C0 = np.mean(x_vals)
     p0 = [A0, b0, w0, phi0, C0]
 
     try:
+        # Obtém os valores ajustados de A, b, w, phi, C segundo o que eu adquiri experimentalmente, meus chutes iniciais e a fórmula do MHA
         popt, _ = curve_fit(modeloMHA, tempos, x_vals, p0=p0, maxfev=10000)
         A, b, w, phi, C = popt
+        gamma = b / (2*massa)
+        Q = w / (2*gamma)
 
+        # Imprime os valores
         print("\nPARÂMETROS AJUSTADOS")
         print(f"A = {A:.4f} pixels")
         print(f"b = {b:.6f}")
         print(f"w = {w:.4f} rad/s")
         print(f"phi = {phi:.4f} rad")
         print(f"C = {C:.4f} pixels")
-        print(f"Q = {w / (2*b):.2f}")
+        print(f"Q = {Q:.2f}")
 
+        # Gera um gráfico de X pelo tempo a partir das posições com os parâmetros ajustados
         x_ajustada = modeloMHA(tempos, *popt)
 
         plt.figure(figsize=(12, 6))
@@ -104,7 +114,7 @@ def ajustaCurva(tempos, x_vals):
     except RuntimeError:
         print("Erro: ajuste falhou.")
 
-# Execução principal
+# Main
 video = cv2.VideoCapture("video_pendulo.mp4")
 
 fps = video.get(cv2.CAP_PROP_FPS)

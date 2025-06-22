@@ -36,67 +36,83 @@ def encontraDados(video, fps):
     return dados
 
 # Função da onda do movimento amortecido
-def modeloMA(t, A, w, phi, b):
-    return A * np.exp(-b * t) * np.sin(w * t + phi) 
+def modeloMHA(t, A, b, w, phi, C):
+    return A * np.exp((-b * t) / (2 * massa)) * np.cos(w * t + phi) + C
 
+# Cria os dois gráficos e retorna os dados
 def criaGraficos(dados):
-    tempos = [d[0] for d in dados]
-    x_vals = [d[1][0] for d in dados]
-    y_vals = [d[1][1] for d in dados]
+    tempos = np.array([d[0] for d in dados])
+    x_vals = np.array([d[1][0] for d in dados])
+    y_vals = np.array([d[1][1] for d in dados])
 
-    # Gráfico da posição X
-    plt.figure(figsize=(10, 5))
-    plt.plot(tempos, x_vals, 'bo', label='x(t) dados')
+    plt.figure(figsize=(12, 6))
+    plt.plot(tempos, x_vals, color='blue', linewidth=2)
+    plt.title('Posição X da massa em função do tempo')
+    plt.xlabel('Tempo (s)')
+    plt.ylabel('X (px)')
+    plt.grid(True)
+    plt.savefig("grafico_x.png")
+    plt.close()
 
-    # Ajuste da curva x(t)
+    plt.figure(figsize=(12, 6))
+    plt.plot(tempos, y_vals, color='red', linewidth=2)
+    plt.title('Posição Y da massa em função do tempo')
+    plt.xlabel('Tempo (s)')
+    plt.ylabel('Y (px)')
+    plt.grid(True)
+    plt.savefig("grafico_y.png")
+    plt.close()
+
+    return tempos, x_vals
+
+# Ajusta a curva para os dados de x(t)
+def ajustaCurva(tempos, x_vals):
+    global massa
+    massa = 0.190
     A0 = (max(x_vals) - min(x_vals)) / 2
-    w0 = 2 * np.pi / (tempos[-1] if tempos[-1] > 0 else 1)  # tem esse if-else para o caso de t ser 0 ou próximo
+    b0 = 0.005
+    w0 = (0.04*np.pi)*fps
     phi0 = 0
-    b0 = 0.1
-    p0 = [A0, w0, phi0, b0]
+    C0 = np.mean(x_vals)
+    p0 = [A0, b0, w0, phi0, C0]
 
     try:
-        parametros_otimizados, _ = curve_fit(modeloMA, tempos, x_vals, p0) # Encontra os melhores valores de w, phi e A para que meus dados sejam um MHS
-        x_ajustada = modeloMA(np.array(tempos), *parametros_otimizados)    # Recalcula as posições em x a partir dos tempos e dos parâmetros (w, phi e A) otimizados
-        plt.plot(tempos, x_ajustada, 'r-', label='Ajuste OHM')  # Plota o gráfico de x pelo tempo novamente, potém com os valores otimizados
+        popt, _ = curve_fit(modeloMHA, tempos, x_vals, p0=p0, maxfev=10000)
+        A, b, w, phi, C = popt
+
+        print("\nPARÂMETROS AJUSTADOS")
+        print(f"A = {A:.4f} pixels")
+        print(f"b = {b:.6f}")
+        print(f"w = {w:.4f} rad/s")
+        print(f"phi = {phi:.4f} rad")
+        print(f"C = {C:.4f} pixels")
+        print(f"Q = {w / (2*b):.2f}")
+
+        x_ajustada = modeloMHA(tempos, *popt)
+
+        plt.figure(figsize=(12, 6))
+        plt.plot(tempos, x_vals, 'bo', label='Dados', markersize=3)
+        plt.plot(tempos, x_ajustada, 'r-', label='Ajuste', linewidth=2)
+        plt.title('Ajuste de x(t) pelo Modelo de MHA')
+        plt.xlabel('Tempo (s)')
+        plt.ylabel('X (px)')
+        plt.grid(True)
+        plt.legend()
+        plt.savefig("ajuste_xt.png")
+        plt.close()
+
     except RuntimeError:
-        print("Não foi possível ajustar a curva.")
+        print("Erro: ajuste falhou.")
 
-    plt.xlabel('Tempo (s)')
-    plt.ylabel('Posição X (pixels)')
-    plt.title('Posição X e ajuste OHM')
-    plt.grid(True)
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig("graficoX_ajustado.png")
-
-    # Gráfico da posição Y
-    plt.figure(figsize=(10, 5))
-    plt.plot(tempos, y_vals, 'go', label='y(t) dados')
-    plt.xlabel('Tempo (s)')
-    plt.ylabel('Posição Y (pixels)')
-    plt.title('Posição Y pelo tempo')
-    plt.grid(True)
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig("graficoY.png")
-
-    return parametros_otimizados
-
+# Execução principal
 video = cv2.VideoCapture("video_pendulo.mp4")
 
-# Ver quantos frames por segundo tem o vídeo
 fps = video.get(cv2.CAP_PROP_FPS)
 
 dados = encontraDados(video, fps)
 
-A, w, phi, b = criaGraficos(dados) # Faz as impressões finais das variáveis
-print(f"Amplitude = {A:.2f}")
-print(f"Frequencia ângular = {w:.2f}")
-print(f"Ângulo = {phi:.2f}")
-print(f"Coeficiente de amortecimento = {b:.2f}")
+tempos, x_vals = criaGraficos(dados)
 
-Q = w / (2 * b)
-print(f"Fator de qualidade = {Q:.2f}")
+ajustaCurva(tempos, x_vals)
 
 video.release()

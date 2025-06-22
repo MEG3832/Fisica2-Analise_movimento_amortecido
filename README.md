@@ -4,7 +4,7 @@
 
   Os valores da amplitude (A), da constante de amortecimento(b), da frequência angular(w), da fase inicial (phi), da posição de repouso(C) e do fator de qualidade (Q) foram adquiridos ajustando a curva da posição x pelo tempo. Concluiu-se que:
   
-##PARÂMETROS AJUSTADOS  
+PARÂMETROS AJUSTADOS  
 A = 216.9944 pixels  
 b = 0.001415  
 w = 3.8078 rad/s  

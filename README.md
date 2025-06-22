@@ -1,6 +1,6 @@
-# Fisica 2 - Analise Movimento Amortecido
+# Física 2 - Análise Movimento Amortecido
 
-  Este trabalho tem a finalidade de realizar uma análise dos dados experimentais coletados após a construção de um pêndulo. Para tanto, os tempos e as coordenadas por frame foram reunidas e utilizados para a criação de um gráfico adequado ao Movimento Amortecido.
+  Este trabalho tem a finalidade de realizar uma análise dos dados experimentais coletados após a construção de um pêndulo. Para tanto, os tempos e as coordenadas por frame foram reunidos e utilizados para a criação de um gráfico adequado ao Movimento Amortecido.
 
   Os valores da amplitude (A), da constante de amortecimento(b), da frequência angular(w), da fase inicial (phi), da posição de repouso(C) e do fator de qualidade (Q) foram adquiridos ajustando a curva da posição x pelo tempo. Concluiu-se que:
   
